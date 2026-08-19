@@ -1,0 +1,238 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================
+// ENUM
+// ==========================
+
+enum UserRole {
+  ADMIN
+  STAFF
+  TECHNICIAN
+  HELPER
+}
+
+enum PhotoType {
+  BEFORE
+  AFTER
+}
+
+enum JobType {
+  INSTALASI
+  MAINTENANCE
+  SERVICE
+}
+
+enum ServiceCategory {
+  AC
+  ELEKTRONIK
+}
+
+enum TechnicianStatus {
+  AVAILABLE
+  ON_DUTY
+  OFF
+}
+
+enum OrderStatus {
+  PENDING
+  ASSIGNED
+  IN_PROGRESS
+  DONE
+  CANCELLED
+  INVOICED
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PAID
+  PARTIAL
+  VOID
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  QRIS
+  OTHER
+}
+
+// ==========================
+// MODELS
+// ==========================
+
+model User {
+  id           String      @id @default(uuid())
+  name         String
+  email        String      @unique
+  passwordHash String
+  role         UserRole    @default(STAFF)
+  technician   Technician? @relation(fields: [technicianId], references: [id])
+  technicianId String?     @unique
+  helper       Helper?     @relation(fields: [helperId], references: [id])
+  helperId     String?     @unique
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  address   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+}
+
+model Technician {
+  id           String            @id @default(uuid())
+  name         String
+  phone        String
+  specialty    ServiceCategory[]
+  status       TechnicianStatus  @default(AVAILABLE)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  orders    Order[]
+  schedules TechnicianSchedule[]
+  account   User?
+}
+
+model Helper {
+  id        String        @id @default(uuid())
+  name      String
+  phone     String
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  account     User?
+  assignments OrderHelper[]
+}
+
+model ServiceType {
+  id          String          @id @default(uuid())
+  code        String          @unique
+  name        String          @unique
+  category    ServiceCategory
+  basePrice   Decimal         @db.Decimal(12, 2)
+  helperRate  Decimal         @default(0) @db.Decimal(5, 2)
+  description String?
+  isActive    Boolean         @default(true)
+
+  orders Order[]
+}
+
+model Order {
+  id            String      @id @default(uuid())
+  orderNumber   String      @unique
+  customer      Customer    @relation(fields: [customerId], references: [id])
+  customerId    String
+  serviceType   ServiceType @relation(fields: [serviceTypeId], references: [id])
+  serviceTypeId String
+  technician    Technician? @relation(fields: [technicianId], references: [id])
+  technicianId  String?
+  status        OrderStatus @default(PENDING)
+  scheduledDate DateTime?
+  address       String
+  complaint     String?
+  rootCause     String?
+  repairAction  String?
+  notes         String?
+  serviceItem   String?
+  brand         String?
+  completedAt   DateTime?
+  reminderDate  DateTime?
+  reminderSentAt DateTime?
+  technicianNotes String?
+  jobType       JobType?
+  jobCost       Decimal?    @db.Decimal(12, 2)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  items   OrderItem[]
+  invoice Invoice?
+  photos  OrderPhoto[]
+  helpers OrderHelper[]
+}
+
+model OrderHelper {
+  id               String   @id @default(uuid())
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId          String
+  name             String
+  phone            String?
+  helper           Helper?  @relation(fields: [helperId], references: [id])
+  helperId         String?
+  commissionRate   Decimal  @db.Decimal(5, 2)
+  commissionAmount Decimal  @db.Decimal(12, 2)
+  createdAt        DateTime @default(now())
+
+  @@index([helperId])
+}
+
+model OrderPhoto {
+  id        String    @id @default(uuid())
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String
+  type      PhotoType
+  url       String
+  createdAt DateTime  @default(now())
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String
+  name      String
+  qty       Int     @default(1)
+  unitPrice Decimal @db.Decimal(12, 2)
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  order         Order         @relation(fields: [orderId], references: [id])
+  orderId       String        @unique
+  subtotal      Decimal       @db.Decimal(12, 2)
+  discount      Decimal       @default(0) @db.Decimal(12, 2)
+  total         Decimal       @db.Decimal(12, 2)
+  status        InvoiceStatus @default(UNPAID)
+  paymentMethod PaymentMethod?
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  payments Payment[]
+}
+
+model Payment {
+  id        String        @id @default(uuid())
+  invoice   Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId String
+  amount    Decimal       @db.Decimal(12, 2)
+  method    PaymentMethod
+  note      String?
+  createdAt DateTime      @default(now())
+
+  @@index([invoiceId])
+}
+
+model TechnicianSchedule {
+  id           String     @id @default(uuid())
+  technician   Technician @relation(fields: [technicianId], references: [id])
+  technicianId String
+  date         DateTime
+  note         String?
+
+  @@index([technicianId, date])
+}

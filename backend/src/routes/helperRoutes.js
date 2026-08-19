@@ -1,0 +1,10 @@
+const router = require("express").Router();
+const ctrl = require("../controllers/helperController");
+const { authenticate, authorize } = require("../middleware/auth");
+router.use(authenticate);
+router.get("/my/assignments", authorize("HELPER"), ctrl.myAssignments);
+router.get("/", authorize("ADMIN", "STAFF"), ctrl.list);
+router.post("/", authorize("ADMIN", "STAFF"), ctrl.create);
+router.patch("/:id", authorize("ADMIN", "STAFF"), ctrl.update);
+router.post("/:id/account", authorize("ADMIN", "STAFF"), ctrl.createAccount);
+module.exports = router;
