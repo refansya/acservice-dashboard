@@ -4,6 +4,11 @@
 FROM node:22-alpine
 WORKDIR /app
 
+# Prisma engine butuh OpenSSL, tapi image Alpine tidak menyertakannya secara
+# default - tanpa ini, "prisma migrate deploy" gagal start dengan error
+# "failed to detect the libssl/openssl version".
+RUN apk add --no-cache openssl
+
 # Copy manifest dulu (layer cache) - butuh package.json semua workspace supaya
 # npm ci tahu struktur workspace-nya, walau isi frontend tidak akan diinstall.
 COPY package.json package-lock.json ./
