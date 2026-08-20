@@ -12,9 +12,15 @@ const serviceTypeSchema = z.object({
 });
 
 async function list(req, res) {
-  const { category } = req.query;
+  const { category, includeInactive } = req.query;
+  // Default: hanya tampilkan layanan yang aktif (dipakai di form buat order baru,
+  // dsb). Halaman manajemen "Jenis Layanan" kirim includeInactive=true supaya
+  // admin tetap bisa melihat dan mengaktifkan kembali layanan yang dinonaktifkan.
   const serviceTypes = await prisma.serviceType.findMany({
-    where: { category: category || undefined },
+    where: {
+      category: category || undefined,
+      isActive: includeInactive === "true" ? undefined : true,
+    },
     orderBy: { name: "asc" },
   });
   res.json(serviceTypes);
@@ -28,12 +34,18 @@ async function create(req, res) {
 
 async function update(req, res) {
   const data = serviceTypeSchema.partial().parse(req.body);
-  const serviceType = await prisma.serviceType.update({ where: { id: req.params.id }, data });
+  const serviceType = await prisma.serviceType.update({
+    where: { id: req.params.id },
+    data,
+  });
   res.json(serviceType);
 }
 
 async function remove(req, res) {
-  await prisma.serviceType.update({ where: { id: req.params.id }, data: { isActive: false } });
+  await prisma.serviceType.update({
+    where: { id: req.params.id },
+    data: { isActive: false },
+  });
   res.status(204).send();
 }
 
