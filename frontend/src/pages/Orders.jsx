@@ -42,6 +42,7 @@ export default function Orders() {
   const [detailOrder, setDetailOrder] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [newCustomerMode, setNewCustomerMode] = useState(false);
+  const [addressOverride, setAddressOverride] = useState(false);
   const [error, setError] = useState("");
 
   async function loadOrders() {
@@ -78,8 +79,24 @@ export default function Orders() {
   function openCreate() {
     setForm(EMPTY_FORM);
     setNewCustomerMode(false);
+    setAddressOverride(false);
     setError("");
     setModalOpen(true);
+  }
+
+  // Saat pilih pelanggan lama dari dropdown, alamat servis otomatis diisi
+  // dari data pelanggan tersimpan - supaya tidak perlu ketik ulang dan
+  // menghindari alamat order jadi beda-beda tiap kali pelanggan yang sama
+  // dipesan lagi. Admin tetap bisa klik "Ubah alamat" kalau lokasi servis
+  // kali ini memang berbeda dari alamat tersimpan (mis. servis di kantor).
+  function handleSelectCustomer(customerId) {
+    const customer = customers.find((c) => c.id === customerId);
+    setAddressOverride(false);
+    setForm({
+      ...form,
+      customerId,
+      address: customer?.address || "",
+    });
   }
 
   async function handleSubmit(e) {
@@ -98,7 +115,13 @@ export default function Orders() {
         brand: form.brand || undefined,
         reminderDate: form.reminderDate || undefined,
         helperIds: form.helperIds.length ? form.helperIds : undefined,
-        items: form.items.length ? form.items.map((item) => ({ ...item, qty: Number(item.qty), unitPrice: Number(item.unitPrice) })) : undefined,
+        items: form.items.length
+          ? form.items.map((item) => ({
+              ...item,
+              qty: Number(item.qty),
+              unitPrice: Number(item.unitPrice),
+            }))
+          : undefined,
         proofPhotoUrl: form.proofPhotoUrl || undefined,
       };
       await api.post("/orders", payload);
@@ -279,7 +302,11 @@ export default function Orders() {
                   type="button"
                   className="btn btn-ghost"
                   style={{ padding: "3px 10px", fontSize: 12 }}
-                  onClick={() => setNewCustomerMode(false)}
+                  onClick={() => {
+                    setNewCustomerMode(false);
+                    setAddressOverride(false);
+                    setForm({ ...form, address: "" });
+                  }}
                 >
                   Pilih dari daftar
                 </button>
@@ -305,9 +332,7 @@ export default function Orders() {
             <div style={{ display: "flex", gap: 8 }}>
               <select
                 value={form.customerId}
-                onChange={(e) =>
-                  setForm({ ...form, customerId: e.target.value })
-                }
+                onChange={(e) => handleSelectCustomer(e.target.value)}
                 required
                 style={{ flex: 1 }}
               >
@@ -321,7 +346,11 @@ export default function Orders() {
               <button
                 type="button"
                 className="btn btn-ghost"
-                onClick={() => setNewCustomerMode(true)}
+                onClick={() => {
+                  setNewCustomerMode(true);
+                  setAddressOverride(false);
+                  setForm({ ...form, address: "" });
+                }}
               >
                 + Baru
               </button>
@@ -355,12 +384,53 @@ export default function Orders() {
             ))}
           </select>
 
-          <input
-            placeholder="Alamat servis"
-            value={form.address}
-            onChange={(e) => setForm({ ...form, address: e.target.value })}
-            required
-          />
+          <div>
+            {(() => {
+              const selectedCustomer = !newCustomerMode
+                ? customers.find((c) => c.id === form.customerId)
+                : null;
+              // Field alamat dikunci HANYA kalau pelanggan lama ini memang
+              // punya alamat tersimpan (auto-terisi) dan belum di-override.
+              // Kalau pelanggan lama tapi alamatnya belum pernah tercatat,
+              // field tetap bisa diisi manual seperti biasa.
+              const isLocked =
+                !newCustomerMode &&
+                Boolean(selectedCustomer?.address) &&
+                !addressOverride;
+              return (
+                <>
+                  <input
+                    placeholder="Alamat servis"
+                    value={form.address}
+                    onChange={(e) =>
+                      setForm({ ...form, address: e.target.value })
+                    }
+                    readOnly={isLocked}
+                    style={
+                      isLocked
+                        ? { color: "var(--text-muted)", cursor: "not-allowed" }
+                        : undefined
+                    }
+                    required
+                  />
+                  {isLocked && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      style={{
+                        padding: "3px 10px",
+                        fontSize: 12,
+                        marginTop: 6,
+                      }}
+                      onClick={() => setAddressOverride(true)}
+                    >
+                      Alamat servis beda dari alamat pelanggan? Ubah di sini
+                    </button>
+                  )}
+                </>
+              );
+            })()}
+          </div>
           <div
             style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
           >
@@ -418,9 +488,95 @@ export default function Orders() {
             onChange={(e) => setForm({ ...form, complaint: e.target.value })}
           />
           <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
-            <label style={{ fontSize: 12.5, color: "var(--text-muted)", display: "block", marginBottom: 8 }}>Sparepart / item awal (opsional)</label>
-            {form.items.map((item, index) => <div key={index} style={{ display: "grid", gridTemplateColumns: "1fr 72px 120px auto", gap: 8, marginBottom: 8 }}><input placeholder="Nama item" value={item.name} onChange={(e) => setForm({ ...form, items: form.items.map((v, i) => i === index ? { ...v, name: e.target.value } : v) })} /><input type="number" min="1" inputMode="numeric" placeholder="Qty" value={item.qty} onChange={(e) => setForm({ ...form, items: form.items.map((v, i) => i === index ? { ...v, qty: e.target.value } : v) })} /><input type="number" min="0" inputMode="numeric" placeholder="Harga" value={item.unitPrice} onChange={(e) => setForm({ ...form, items: form.items.map((v, i) => i === index ? { ...v, unitPrice: e.target.value } : v) })} /><button type="button" className="btn btn-ghost" onClick={() => setForm({ ...form, items: form.items.filter((_, i) => i !== index) })}>×</button></div>)}
-            <button type="button" className="btn btn-ghost" style={{ fontSize: 12.5 }} onClick={() => setForm({ ...form, items: [...form.items, { name: "", qty: 1, unitPrice: "" }] })}>+ Tambah Item</button>
+            <label
+              style={{
+                fontSize: 12.5,
+                color: "var(--text-muted)",
+                display: "block",
+                marginBottom: 8,
+              }}
+            >
+              Sparepart / item awal (opsional)
+            </label>
+            {form.items.map((item, index) => (
+              <div
+                key={index}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 72px 120px auto",
+                  gap: 8,
+                  marginBottom: 8,
+                }}
+              >
+                <input
+                  placeholder="Nama item"
+                  value={item.name}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      items: form.items.map((v, i) =>
+                        i === index ? { ...v, name: e.target.value } : v,
+                      ),
+                    })
+                  }
+                />
+                <input
+                  type="number"
+                  min="1"
+                  inputMode="numeric"
+                  placeholder="Qty"
+                  value={item.qty}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      items: form.items.map((v, i) =>
+                        i === index ? { ...v, qty: e.target.value } : v,
+                      ),
+                    })
+                  }
+                />
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  placeholder="Harga"
+                  value={item.unitPrice}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      items: form.items.map((v, i) =>
+                        i === index ? { ...v, unitPrice: e.target.value } : v,
+                      ),
+                    })
+                  }
+                />
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() =>
+                    setForm({
+                      ...form,
+                      items: form.items.filter((_, i) => i !== index),
+                    })
+                  }
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ fontSize: 12.5 }}
+              onClick={() =>
+                setForm({
+                  ...form,
+                  items: [...form.items, { name: "", qty: 1, unitPrice: "" }],
+                })
+              }
+            >
+              + Tambah Item
+            </button>
           </div>
           <div
             style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
