@@ -503,7 +503,8 @@ export default function Orders() {
                 key={index}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr 72px 120px auto",
+                  gridTemplateColumns: "1fr 72px auto",
+                  gridTemplateRows: "auto auto",
                   gap: 8,
                   marginBottom: 8,
                 }}
@@ -519,6 +520,7 @@ export default function Orders() {
                       ),
                     })
                   }
+                  style={{ gridColumn: "1", gridRow: "1" }}
                 />
                 <input
                   type="number"
@@ -534,7 +536,21 @@ export default function Orders() {
                       ),
                     })
                   }
+                  style={{ gridColumn: "2", gridRow: "1" }}
                 />
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() =>
+                    setForm({
+                      ...form,
+                      items: form.items.filter((_, i) => i !== index),
+                    })
+                  }
+                  style={{ gridColumn: "3", gridRow: "1" }}
+                >
+                  ×
+                </button>
                 <input
                   type="number"
                   min="0"
@@ -549,19 +565,8 @@ export default function Orders() {
                       ),
                     })
                   }
+                  style={{ gridColumn: "1 / -1", gridRow: "2" }}
                 />
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() =>
-                    setForm({
-                      ...form,
-                      items: form.items.filter((_, i) => i !== index),
-                    })
-                  }
-                >
-                  ×
-                </button>
               </div>
             ))}
             <button
