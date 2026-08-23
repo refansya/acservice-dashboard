@@ -13,6 +13,9 @@ const NAV_ITEMS = [
   { to: "/invoices", label: "Invoice", icon: "▧" },
   { to: "/reports", label: "Laporan", icon: "◫" },
 ];
+const ADMIN_ONLY_NAV_ITEMS = [
+  { to: "/settings", label: "Pengaturan", icon: "⚙" },
+];
 
 export default function DashboardLayout() {
   const { user, logout } = useAuth();
@@ -26,7 +29,7 @@ export default function DashboardLayout() {
   }
 
   const currentLabel =
-    NAV_ITEMS.find((item) =>
+    [...NAV_ITEMS, ...ADMIN_ONLY_NAV_ITEMS].find((item) =>
       item.to === "/"
         ? location.pathname === "/"
         : location.pathname.startsWith(item.to),
@@ -103,7 +106,10 @@ export default function DashboardLayout() {
         <nav
           style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1 }}
         >
-          {NAV_ITEMS.map((item) => (
+          {[
+            ...NAV_ITEMS,
+            ...(user?.role === "ADMIN" ? ADMIN_ONLY_NAV_ITEMS : []),
+          ].map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

@@ -15,6 +15,7 @@ import Reports from "./pages/Reports";
 import MyOrders from "./pages/technician/MyOrders";
 import MyOrderDetail from "./pages/technician/MyOrderDetail";
 import Helpers from "./pages/Helpers";
+import Settings from "./pages/Settings";
 import HelperLayout from "./layouts/HelperLayout";
 import MyAssignments from "./pages/helper/MyAssignments";
 
@@ -64,6 +65,7 @@ export default function App() {
             <Route path="service-types" element={<ServiceTypes />} />
             <Route path="invoices" element={<Invoices />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>
       </AuthProvider>
