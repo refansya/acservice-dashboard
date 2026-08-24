@@ -9,6 +9,8 @@ export default function Settings() {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState(null);
   const [error, setError] = useState("");
 
   async function load() {
@@ -63,6 +65,24 @@ export default function Settings() {
       setError(err.response?.data?.error || "Gagal memulai koneksi Gmail");
     } finally {
       setConnecting(false);
+    }
+  }
+
+  // Job pengecekan reminder otomatis cuma jalan sekali saat server start lalu
+  // sekali per 24 jam - jadi kalau Gmail baru saja dihubungkan, atau admin
+  // butuh kirim ulang segera (mis. untuk testing), tombol ini kirim manual
+  // tanpa perlu tunggu jadwal berikutnya.
+  async function handleSendNow() {
+    setSending(true);
+    setSendResult(null);
+    setError("");
+    try {
+      const { data } = await api.post("/reminders/gmail/send-now");
+      setSendResult(data);
+    } catch (err) {
+      setError(err.response?.data?.error || "Gagal mengirim reminder");
+    } finally {
+      setSending(false);
     }
   }
 
@@ -170,10 +190,52 @@ export default function Settings() {
                   fontSize: 12,
                   color: "var(--text-faint)",
                   marginTop: 8,
+                  marginBottom: 16,
                 }}
               >
                 Sudah terhubung. Klik lagi hanya kalau perlu ganti izin akses
                 atau koneksinya bermasalah.
+              </div>
+            )}
+
+            {status.connected && (
+              <div
+                style={{
+                  borderTop: "1px solid var(--border)",
+                  paddingTop: 16,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 12.5,
+                    color: "var(--text-muted)",
+                    marginBottom: 10,
+                  }}
+                >
+                  Sistem otomatis cek reminder jatuh tempo sekali sehari. Kalau
+                  baru menghubungkan Gmail atau butuh kirim ulang segera, kirim
+                  manual di sini.
+                </div>
+                <button
+                  className="btn btn-ghost"
+                  disabled={sending}
+                  onClick={handleSendNow}
+                >
+                  {sending ? "Mengirim..." : "Kirim Reminder Sekarang"}
+                </button>
+                {sendResult && (
+                  <div
+                    style={{
+                      fontSize: 12.5,
+                      color: "var(--success)",
+                      marginTop: 8,
+                    }}
+                  >
+                    {sendResult.sent > 0
+                      ? `${sendResult.sent} email reminder berhasil dikirim.`
+                      : "Tidak ada order maintenance yang jatuh tempo saat ini."}
+                  </div>
+                )}
               </div>
             )}
           </>
