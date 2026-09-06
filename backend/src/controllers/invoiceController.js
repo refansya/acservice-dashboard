@@ -6,7 +6,11 @@ const path = require("path");
 async function generateInvoiceNumber(serviceCode) {
   const today = new Date();
   const datePart = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
-  const prefix = `${serviceCode === "SVC" ? "SRV" : serviceCode}-${datePart}`;
+  // Prefix "INV-" supaya nomor invoice langsung kelihatan beda dari nomor
+  // order walau dilihat sekilas - sebelumnya dua-duanya pakai format persis
+  // sama ({kode}-{tanggal}-{urutan}) sehingga sering kebetulan mirip/sama
+  // dan bikin bingung (mis. di dashboard helper).
+  const prefix = `INV-${serviceCode === "SVC" ? "SRV" : serviceCode}-${datePart}`;
   const countToday = await prisma.invoice.count({
     where: { invoiceNumber: { startsWith: prefix } },
   });
@@ -475,6 +479,27 @@ async function markPaid(req, res) {
   res.json(invoice);
 }
 
+// Hapus invoice secara permanen (Payment ikut terhapus otomatis lewat
+// cascade di schema). Kalau order-nya sempat berstatus INVOICED gara-gara
+// invoice ini, kembalikan ke DONE supaya order tidak "menggantung" dengan
+// status yang sudah tidak sesuai kenyataan (invoicenya sudah tidak ada).
+async function remove(req, res) {
+  const invoice = await prisma.invoice.findUniqueOrThrow({
+    where: { id: req.params.id },
+    include: { order: true },
+  });
+  await prisma.$transaction(async (tx) => {
+    await tx.invoice.delete({ where: { id: invoice.id } });
+    if (invoice.order.status === "INVOICED") {
+      await tx.order.update({
+        where: { id: invoice.order.id },
+        data: { status: "DONE" },
+      });
+    }
+  });
+  res.status(204).send();
+}
+
 module.exports = {
   list,
   getById,
@@ -485,4 +510,5 @@ module.exports = {
   renderReceiptPdf,
   createInvoiceForOrder,
   recordPayment,
+  remove,
 };
