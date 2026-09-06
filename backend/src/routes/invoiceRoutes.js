@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const ctrl = require("../controllers/invoiceController");
-const { authenticate } = require("../middleware/auth");
+const { authenticate, authorize } = require("../middleware/auth");
 
 router.use(authenticate);
 
@@ -10,5 +10,7 @@ router.get("/:id/receipt", ctrl.downloadReceipt);
 router.post("/from-order/:orderId", ctrl.createFromOrder);
 router.patch("/:id/pay", ctrl.markPaid);
 router.post("/:id/payments", ctrl.addPayment);
+// Hapus data dibatasi ADMIN saja - aksi destruktif dan permanen.
+router.delete("/:id", authorize("ADMIN"), ctrl.remove);
 
 module.exports = router;

@@ -16,7 +16,9 @@ export default function Customers() {
 
   async function load() {
     setLoading(true);
-    const { data } = await api.get("/customers", { params: search ? { search } : {} });
+    const { data } = await api.get("/customers", {
+      params: search ? { search } : {},
+    });
     setCustomers(data);
     setLoading(false);
   }
@@ -34,7 +36,12 @@ export default function Customers() {
   }
 
   function openEdit(customer) {
-    setForm({ name: customer.name, phone: customer.phone, address: customer.address || "", notes: customer.notes || "" });
+    setForm({
+      name: customer.name,
+      phone: customer.phone,
+      address: customer.address || "",
+      notes: customer.notes || "",
+    });
     setEditingId(customer.id);
     setError("");
     setModalOpen(true);
@@ -56,9 +63,18 @@ export default function Customers() {
   }
 
   async function handleDelete(id) {
-    if (!confirm("Hapus pelanggan ini?")) return;
-    await api.delete(`/customers/${id}`);
-    load();
+    if (
+      !confirm(
+        "Hapus pelanggan ini? Tindakan ini permanen dan tidak bisa dibatalkan.",
+      )
+    )
+      return;
+    try {
+      await api.delete(`/customers/${id}`);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.error || "Gagal menghapus pelanggan");
+    }
   }
 
   return (
@@ -95,24 +111,42 @@ export default function Customers() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={4} style={{ color: "var(--text-faint)" }}>Memuat...</td>
+                <td colSpan={4} style={{ color: "var(--text-faint)" }}>
+                  Memuat...
+                </td>
               </tr>
             )}
             {!loading && customers.length === 0 && (
               <tr>
-                <td colSpan={4} style={{ color: "var(--text-faint)" }}>Belum ada pelanggan.</td>
+                <td colSpan={4} style={{ color: "var(--text-faint)" }}>
+                  Belum ada pelanggan.
+                </td>
               </tr>
             )}
             {customers.map((c) => (
               <tr key={c.id}>
                 <td>{c.name}</td>
                 <td className="mono">{c.phone}</td>
-                <td style={{ color: "var(--text-muted)" }}>{c.address || "—"}</td>
+                <td style={{ color: "var(--text-muted)" }}>
+                  {c.address || "—"}
+                </td>
                 <td style={{ textAlign: "right" }}>
-                  <button className="btn btn-ghost" style={{ padding: "5px 10px", fontSize: 12.5, marginRight: 6 }} onClick={() => openEdit(c)}>
+                  <button
+                    className="btn btn-ghost"
+                    style={{
+                      padding: "5px 10px",
+                      fontSize: 12.5,
+                      marginRight: 6,
+                    }}
+                    onClick={() => openEdit(c)}
+                  >
                     Ubah
                   </button>
-                  <button className="btn btn-danger" style={{ padding: "5px 10px", fontSize: 12.5 }} onClick={() => handleDelete(c.id)}>
+                  <button
+                    className="btn btn-danger"
+                    style={{ padding: "5px 10px", fontSize: 12.5 }}
+                    onClick={() => handleDelete(c.id)}
+                  >
                     Hapus
                   </button>
                 </td>
@@ -122,14 +156,49 @@ export default function Customers() {
         </table>
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? "Ubah Pelanggan" : "Pelanggan Baru"}>
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <input placeholder="Nama" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <input placeholder="Nomor telepon" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
-          <input placeholder="Alamat" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-          <textarea placeholder="Catatan" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-          {error && <div style={{ color: "var(--signal-red)", fontSize: 13 }}>{error}</div>}
-          <button className="btn btn-primary" style={{ justifyContent: "center" }}>Simpan</button>
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingId ? "Ubah Pelanggan" : "Pelanggan Baru"}
+      >
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: "flex", flexDirection: "column", gap: 12 }}
+        >
+          <input
+            placeholder="Nama"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            required
+          />
+          <input
+            placeholder="Nomor telepon"
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            required
+          />
+          <input
+            placeholder="Alamat"
+            value={form.address}
+            onChange={(e) => setForm({ ...form, address: e.target.value })}
+          />
+          <textarea
+            placeholder="Catatan"
+            rows={2}
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          />
+          {error && (
+            <div style={{ color: "var(--signal-red)", fontSize: 13 }}>
+              {error}
+            </div>
+          )}
+          <button
+            className="btn btn-primary"
+            style={{ justifyContent: "center" }}
+          >
+            Simpan
+          </button>
         </form>
       </Modal>
     </div>

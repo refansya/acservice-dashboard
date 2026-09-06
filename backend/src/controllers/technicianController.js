@@ -37,11 +37,31 @@ async function create(req, res) {
 
 async function update(req, res) {
   const data = technicianSchema.partial().parse(req.body);
-  const technician = await prisma.technician.update({ where: { id: req.params.id }, data });
+  const technician = await prisma.technician.update({
+    where: { id: req.params.id },
+    data,
+  });
   res.json(technician);
 }
 
 async function remove(req, res) {
+  // Cegah hapus teknisi yang masih terpakai di tempat lain, supaya tidak
+  // kena foreign key error mentah dari Postgres. Sarankan nonaktifkan
+  // (status OFF) sebagai alternatif kalau memang tidak dipakai lagi.
+  const [orderCount, scheduleCount, account] = await Promise.all([
+    prisma.order.count({ where: { technicianId: req.params.id } }),
+    prisma.technicianSchedule.count({ where: { technicianId: req.params.id } }),
+    prisma.user.findUnique({ where: { technicianId: req.params.id } }),
+  ]);
+  const blockers = [];
+  if (orderCount > 0) blockers.push(`${orderCount} order tercatat`);
+  if (scheduleCount > 0) blockers.push(`${scheduleCount} jadwal tersimpan`);
+  if (account) blockers.push("akun login yang masih aktif");
+  if (blockers.length > 0) {
+    return res.status(400).json({
+      error: `Tidak bisa dihapus: teknisi ini masih punya ${blockers.join(", ")}. Ubah status ke "OFF" saja kalau memang sudah tidak aktif.`,
+    });
+  }
   await prisma.technician.delete({ where: { id: req.params.id } });
   res.status(204).send();
 }
@@ -58,16 +78,25 @@ async function addSchedule(req, res) {
   const schema = z.object({ date: z.string(), note: z.string().optional() });
   const data = schema.parse(req.body);
   const schedule = await prisma.technicianSchedule.create({
-    data: { technicianId: req.params.id, date: new Date(data.date), note: data.note },
+    data: {
+      technicianId: req.params.id,
+      date: new Date(data.date),
+      note: data.note,
+    },
   });
   res.status(201).json(schedule);
 }
 
 async function createAccount(req, res) {
-  const schema = z.object({ email: z.string().email(), password: z.string().min(6) });
+  const schema = z.object({
+    email: z.string().email(),
+    password: z.string().min(6),
+  });
   const data = schema.parse(req.body);
 
-  const technician = await prisma.technician.findUniqueOrThrow({ where: { id: req.params.id } });
+  const technician = await prisma.technician.findUniqueOrThrow({
+    where: { id: req.params.id },
+  });
   const passwordHash = await bcrypt.hash(data.password, 10);
 
   const user = await prisma.user.create({
@@ -83,4 +112,13 @@ async function createAccount(req, res) {
   res.status(201).json({ id: user.id, email: user.email, role: user.role });
 }
 
-module.exports = { list, getById, create, update, remove, getSchedule, addSchedule, createAccount };
+module.exports = {
+  list,
+  getById,
+  create,
+  update,
+  remove,
+  getSchedule,
+  addSchedule,
+  createAccount,
+};

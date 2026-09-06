@@ -7,4 +7,7 @@ router.get("/", authorize("ADMIN", "STAFF"), ctrl.list);
 router.post("/", authorize("ADMIN", "STAFF"), ctrl.create);
 router.patch("/:id", authorize("ADMIN", "STAFF"), ctrl.update);
 router.post("/:id/account", authorize("ADMIN", "STAFF"), ctrl.createAccount);
+// Hapus data dibatasi ADMIN saja - beda dari update/create yang boleh STAFF -
+// karena ini aksi destruktif dan permanen.
+router.delete("/:id", authorize("ADMIN"), ctrl.remove);
 module.exports = router;

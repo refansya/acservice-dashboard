@@ -199,13 +199,21 @@ async function assignTechnician(req, res) {
 
 async function updateStatus(req, res) {
   const { status } = updateStatusSchema.parse(req.body);
-  const current = await prisma.order.findUniqueOrThrow({ where: { id: req.params.id }, include: { serviceType: true } });
-  const reminderDate = status === "DONE" && current.serviceType.code === "MNT"
-    ? new Date(new Date().setMonth(new Date().getMonth() + 3))
-    : undefined;
+  const current = await prisma.order.findUniqueOrThrow({
+    where: { id: req.params.id },
+    include: { serviceType: true },
+  });
+  const reminderDate =
+    status === "DONE" && current.serviceType.code === "MNT"
+      ? new Date(new Date().setMonth(new Date().getMonth() + 3))
+      : undefined;
   const order = await prisma.order.update({
     where: { id: req.params.id },
-    data: { status, completedAt: status === "DONE" ? new Date() : undefined, reminderDate },
+    data: {
+      status,
+      completedAt: status === "DONE" ? new Date() : undefined,
+      reminderDate,
+    },
   });
   res.json(order);
 }
@@ -236,10 +244,20 @@ async function checkout(req, res) {
       .optional(),
   });
   const { discountPercent = 0, payment } = schema.parse(req.body);
-  const order = await prisma.order.findUniqueOrThrow({ where: { id: req.params.id }, include: { items: true, serviceType: true } });
-  const itemsTotal = order.items.reduce((sum, item) => sum + Number(item.unitPrice) * item.qty, 0);
-  const serviceCost = order.jobCost != null ? Number(order.jobCost) : Number(order.serviceType.basePrice);
-  const discount = Math.round((serviceCost + itemsTotal) * discountPercent) / 100;
+  const order = await prisma.order.findUniqueOrThrow({
+    where: { id: req.params.id },
+    include: { items: true, serviceType: true },
+  });
+  const itemsTotal = order.items.reduce(
+    (sum, item) => sum + Number(item.unitPrice) * item.qty,
+    0,
+  );
+  const serviceCost =
+    order.jobCost != null
+      ? Number(order.jobCost)
+      : Number(order.serviceType.basePrice);
+  const discount =
+    Math.round((serviceCost + itemsTotal) * discountPercent) / 100;
 
   let invoice = await createInvoiceForOrder(req.params.id, discount);
   if (payment) {
@@ -261,6 +279,26 @@ async function checkout(req, res) {
   res.status(201).json(invoice);
 }
 
+// Hapus order secara permanen. Foto/item/data helper (OrderPhoto, OrderItem,
+// OrderHelper) sudah otomatis ikut terhapus lewat cascade di schema Prisma.
+// Invoice TIDAK cascade otomatis (supaya tidak sengaja kehapus di kasus lain),
+// jadi di sini kita hapus manual dalam satu transaksi - urutannya penting:
+// Payment dulu (cascade dari Invoice), baru Invoice, baru Order-nya sendiri.
+async function remove(req, res) {
+  const order = await prisma.order.findUniqueOrThrow({
+    where: { id: req.params.id },
+    include: { invoice: true },
+  });
+  await prisma.$transaction(async (tx) => {
+    if (order.invoice) {
+      await tx.payment.deleteMany({ where: { invoiceId: order.invoice.id } });
+      await tx.invoice.delete({ where: { id: order.invoice.id } });
+    }
+    await tx.order.delete({ where: { id: order.id } });
+  });
+  res.status(204).send();
+}
+
 module.exports = {
   list,
   getById,
@@ -269,4 +307,5 @@ module.exports = {
   updateStatus,
   addItem,
   checkout,
+  remove,
 };

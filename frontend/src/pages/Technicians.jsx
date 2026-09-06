@@ -38,7 +38,12 @@ export default function Technicians() {
   }
 
   function openEdit(t) {
-    setForm({ name: t.name, phone: t.phone, specialty: t.specialty, status: t.status });
+    setForm({
+      name: t.name,
+      phone: t.phone,
+      specialty: t.specialty,
+      status: t.status,
+    });
     setEditingId(t.id);
     setError("");
     setModalOpen(true);
@@ -47,7 +52,9 @@ export default function Technicians() {
   function toggleSpecialty(value) {
     setForm((f) => ({
       ...f,
-      specialty: f.specialty.includes(value) ? f.specialty.filter((s) => s !== value) : [...f.specialty, value],
+      specialty: f.specialty.includes(value)
+        ? f.specialty.filter((s) => s !== value)
+        : [...f.specialty, value],
     }));
   }
 
@@ -71,9 +78,18 @@ export default function Technicians() {
   }
 
   async function handleDelete(id) {
-    if (!confirm("Hapus teknisi ini?")) return;
-    await api.delete(`/technicians/${id}`);
-    load();
+    if (
+      !confirm(
+        "Hapus teknisi ini? Tindakan ini permanen dan tidak bisa dibatalkan.",
+      )
+    )
+      return;
+    try {
+      await api.delete(`/technicians/${id}`);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.error || "Gagal menghapus teknisi");
+    }
   }
 
   function openAccount(t) {
@@ -90,7 +106,10 @@ export default function Technicians() {
       await api.post(`/technicians/${accountTarget.id}/account`, accountForm);
       setAccountSuccess(`Akun login dibuat: ${accountForm.email}`);
     } catch (err) {
-      setAccountError(err.response?.data?.error || "Gagal membuat akun. Mungkin teknisi ini sudah punya akun.");
+      setAccountError(
+        err.response?.data?.error ||
+          "Gagal membuat akun. Mungkin teknisi ini sudah punya akun.",
+      );
     }
   }
 
@@ -99,7 +118,11 @@ export default function Technicians() {
       <PageHeader
         title="Teknisi"
         subtitle={`${technicians.length} teknisi terdaftar`}
-        action={<button className="btn btn-primary" onClick={openCreate}>+ Teknisi Baru</button>}
+        action={
+          <button className="btn btn-primary" onClick={openCreate}>
+            + Teknisi Baru
+          </button>
+        }
       />
 
       <div className="card" style={{ padding: 4 }}>
@@ -115,23 +138,61 @@ export default function Technicians() {
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={5} style={{ color: "var(--text-faint)" }}>Memuat...</td></tr>
+              <tr>
+                <td colSpan={5} style={{ color: "var(--text-faint)" }}>
+                  Memuat...
+                </td>
+              </tr>
             )}
             {!loading && technicians.length === 0 && (
-              <tr><td colSpan={5} style={{ color: "var(--text-faint)" }}>Belum ada teknisi.</td></tr>
+              <tr>
+                <td colSpan={5} style={{ color: "var(--text-faint)" }}>
+                  Belum ada teknisi.
+                </td>
+              </tr>
             )}
             {technicians.map((t) => (
               <tr key={t.id}>
                 <td>{t.name}</td>
                 <td className="mono">{t.phone}</td>
                 <td style={{ display: "flex", gap: 6, paddingTop: 12 }}>
-                  {t.specialty.map((s) => <StatusBadge key={s} status={s} />)}
+                  {t.specialty.map((s) => (
+                    <StatusBadge key={s} status={s} />
+                  ))}
                 </td>
-                <td><StatusBadge status={t.status} /></td>
+                <td>
+                  <StatusBadge status={t.status} />
+                </td>
                 <td style={{ textAlign: "right" }}>
-                  <button className="btn btn-ghost" style={{ padding: "5px 10px", fontSize: 12.5, marginRight: 6 }} onClick={() => openAccount(t)}>Buat Akun</button>
-                  <button className="btn btn-ghost" style={{ padding: "5px 10px", fontSize: 12.5, marginRight: 6 }} onClick={() => openEdit(t)}>Ubah</button>
-                  <button className="btn btn-danger" style={{ padding: "5px 10px", fontSize: 12.5 }} onClick={() => handleDelete(t.id)}>Hapus</button>
+                  <button
+                    className="btn btn-ghost"
+                    style={{
+                      padding: "5px 10px",
+                      fontSize: 12.5,
+                      marginRight: 6,
+                    }}
+                    onClick={() => openAccount(t)}
+                  >
+                    Buat Akun
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    style={{
+                      padding: "5px 10px",
+                      fontSize: 12.5,
+                      marginRight: 6,
+                    }}
+                    onClick={() => openEdit(t)}
+                  >
+                    Ubah
+                  </button>
+                  <button
+                    className="btn btn-danger"
+                    style={{ padding: "5px 10px", fontSize: 12.5 }}
+                    onClick={() => handleDelete(t.id)}
+                  >
+                    Hapus
+                  </button>
                 </td>
               </tr>
             ))}
@@ -139,13 +200,39 @@ export default function Technicians() {
         </table>
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? "Ubah Teknisi" : "Teknisi Baru"}>
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <input placeholder="Nama" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          <input placeholder="Nomor telepon" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingId ? "Ubah Teknisi" : "Teknisi Baru"}
+      >
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: "flex", flexDirection: "column", gap: 12 }}
+        >
+          <input
+            placeholder="Nama"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            required
+          />
+          <input
+            placeholder="Nomor telepon"
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            required
+          />
 
           <div>
-            <label style={{ fontSize: 12.5, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>Spesialisasi</label>
+            <label
+              style={{
+                fontSize: 12.5,
+                color: "var(--text-muted)",
+                display: "block",
+                marginBottom: 6,
+              }}
+            >
+              Spesialisasi
+            </label>
             <div style={{ display: "flex", gap: 8 }}>
               {["AC", "ELEKTRONIK"].map((s) => (
                 <button
@@ -157,8 +244,12 @@ export default function Technicians() {
                     flex: 1,
                     justifyContent: "center",
                     border: "1px solid var(--border-strong)",
-                    background: form.specialty.includes(s) ? "var(--ice-400)" : "transparent",
-                    color: form.specialty.includes(s) ? "var(--navy-950)" : "var(--text-primary)",
+                    background: form.specialty.includes(s)
+                      ? "var(--ice-400)"
+                      : "transparent",
+                    color: form.specialty.includes(s)
+                      ? "var(--navy-950)"
+                      : "var(--text-primary)",
                   }}
                 >
                   {s === "AC" ? "AC" : "Elektronik"}
@@ -168,26 +259,85 @@ export default function Technicians() {
           </div>
 
           <div>
-            <label style={{ fontSize: 12.5, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>Status</label>
-            <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+            <label
+              style={{
+                fontSize: 12.5,
+                color: "var(--text-muted)",
+                display: "block",
+                marginBottom: 6,
+              }}
+            >
+              Status
+            </label>
+            <select
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value })}
+            >
               <option value="AVAILABLE">Tersedia</option>
               <option value="ON_DUTY">Bertugas</option>
               <option value="OFF">Nonaktif</option>
             </select>
           </div>
 
-          {error && <div style={{ color: "var(--signal-red)", fontSize: 13 }}>{error}</div>}
-          <button className="btn btn-primary" style={{ justifyContent: "center" }}>Simpan</button>
+          {error && (
+            <div style={{ color: "var(--signal-red)", fontSize: 13 }}>
+              {error}
+            </div>
+          )}
+          <button
+            className="btn btn-primary"
+            style={{ justifyContent: "center" }}
+          >
+            Simpan
+          </button>
         </form>
       </Modal>
 
-      <Modal open={!!accountTarget} onClose={() => setAccountTarget(null)} title={`Buat Akun Login — ${accountTarget?.name}`} width={380}>
-        <form onSubmit={handleCreateAccount} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <input type="email" placeholder="Email login" value={accountForm.email} onChange={(e) => setAccountForm({ ...accountForm, email: e.target.value })} required />
-          <input type="password" placeholder="Password (min 6 karakter)" value={accountForm.password} onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })} minLength={6} required />
-          {accountError && <div style={{ color: "var(--signal-red)", fontSize: 13 }}>{accountError}</div>}
-          {accountSuccess && <div style={{ color: "var(--success)", fontSize: 13 }}>{accountSuccess}</div>}
-          <button className="btn btn-primary" style={{ justifyContent: "center" }}>Buat Akun</button>
+      <Modal
+        open={!!accountTarget}
+        onClose={() => setAccountTarget(null)}
+        title={`Buat Akun Login — ${accountTarget?.name}`}
+        width={380}
+      >
+        <form
+          onSubmit={handleCreateAccount}
+          style={{ display: "flex", flexDirection: "column", gap: 12 }}
+        >
+          <input
+            type="email"
+            placeholder="Email login"
+            value={accountForm.email}
+            onChange={(e) =>
+              setAccountForm({ ...accountForm, email: e.target.value })
+            }
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password (min 6 karakter)"
+            value={accountForm.password}
+            onChange={(e) =>
+              setAccountForm({ ...accountForm, password: e.target.value })
+            }
+            minLength={6}
+            required
+          />
+          {accountError && (
+            <div style={{ color: "var(--signal-red)", fontSize: 13 }}>
+              {accountError}
+            </div>
+          )}
+          {accountSuccess && (
+            <div style={{ color: "var(--success)", fontSize: 13 }}>
+              {accountSuccess}
+            </div>
+          )}
+          <button
+            className="btn btn-primary"
+            style={{ justifyContent: "center" }}
+          >
+            Buat Akun
+          </button>
         </form>
       </Modal>
     </div>

@@ -76,6 +76,21 @@ export default function Invoices() {
     window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
+  async function handleDelete(invoice) {
+    if (
+      !confirm(
+        `Hapus invoice ${invoice.invoiceNumber} secara permanen? Riwayat pembayarannya ikut terhapus. Tindakan ini tidak bisa dibatalkan.`,
+      )
+    )
+      return;
+    try {
+      await api.delete(`/invoices/${invoice.id}`);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.error || "Gagal menghapus invoice");
+    }
+  }
+
   return (
     <div>
       <PageHeader title="Invoice" subtitle={`${invoices.length} invoice`} />
@@ -153,12 +168,23 @@ export default function Invoices() {
                   {(inv.status === "UNPAID" || inv.status === "PARTIAL") && (
                     <button
                       className="btn btn-primary"
-                      style={{ padding: "5px 10px", fontSize: 12.5 }}
+                      style={{
+                        padding: "5px 10px",
+                        fontSize: 12.5,
+                        marginRight: 6,
+                      }}
                       onClick={() => openPay(inv)}
                     >
                       Terima Bayar
                     </button>
                   )}
+                  <button
+                    className="btn btn-danger"
+                    style={{ padding: "5px 10px", fontSize: 12.5 }}
+                    onClick={() => handleDelete(inv)}
+                  >
+                    Hapus
+                  </button>
                 </td>
               </tr>
             ))}

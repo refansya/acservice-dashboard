@@ -162,6 +162,22 @@ export default function Orders() {
     }
   }
 
+  async function handleDeleteOrder() {
+    if (
+      !confirm(
+        "Hapus order ini secara permanen? Invoice dan pembayaran terkait (kalau ada) akan ikut terhapus. Tindakan ini tidak bisa dibatalkan.",
+      )
+    )
+      return;
+    try {
+      await api.delete(`/orders/${detailOrder.id}`);
+      setDetailOrder(null);
+      loadOrders();
+    } catch (err) {
+      alert(err.response?.data?.error || "Gagal menghapus order");
+    }
+  }
+
   return (
     <div>
       <PageHeader
@@ -821,8 +837,42 @@ export default function Orders() {
                 </div>
               )}
             </div>
+            <div
+              style={{
+                borderTop: "1px solid var(--border)",
+                marginTop: 16,
+                paddingTop: 16,
+              }}
+            >
+              <button
+                className="btn btn-danger"
+                style={{
+                  width: "100%",
+                  justifyContent: "center",
+                  fontSize: 13,
+                }}
+                onClick={handleDeleteOrder}
+              >
+                Hapus Order
+              </button>
+            </div>
           </div>
         )}
+        <div
+          style={{
+            borderTop: "1px solid var(--border)",
+            marginTop: 16,
+            paddingTop: 16,
+          }}
+        >
+          <button
+            className="btn btn-danger"
+            style={{ width: "100%", justifyContent: "center", fontSize: 13 }}
+            onClick={handleDeleteOrder}
+          >
+            Hapus Order
+          </button>
+        </div>
       </Modal>
     </div>
   );
