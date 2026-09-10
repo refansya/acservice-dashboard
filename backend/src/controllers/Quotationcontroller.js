@@ -554,13 +554,6 @@ function renderQuotationPdf(quotation, res) {
     { width: pageWidth },
   );
 
-  // ---- Area tanda tangan ----
-  // Dipatok mepet ke bagian paling bawah kertas (konsisten secara visual
-  // dengan nota/invoice), bukan sekadar menempel di bawah isi penawaran -
-  // supaya tidak terlihat menggantung di tengah halaman saat isi penawaran
-  // pendek. Kalau isi penawaran ternyata sudah kepanjangan sampai menabrak
-  // posisi itu, area ttd dipindah ke halaman baru dan tetap dipatok di
-  // bagian paling bawah halaman baru tersebut.
   const signatureBlockHeight = 130;
   const pageBottom = doc.page.height - doc.page.margins.bottom;
   if (y + 20 > pageBottom - signatureBlockHeight) {

@@ -11,7 +11,6 @@ router.post("/", ctrl.create);
 router.patch("/:id", ctrl.update);
 router.patch("/:id/status", ctrl.updateStatus);
 router.post("/:id/convert", ctrl.convertToOrder);
-// Hapus dibatasi ADMIN saja - konsisten dengan modul lain (order, invoice, dll).
 router.delete("/:id", authorize("ADMIN"), ctrl.remove);
 
 module.exports = router;
