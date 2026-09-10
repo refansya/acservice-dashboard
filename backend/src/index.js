@@ -17,8 +17,11 @@ const reportRoutes = require("./routes/reportRoutes");
 const myRoutes = require("./routes/myRoutes");
 const helperRoutes = require("./routes/helperRoutes");
 const reminderRoutes = require("./routes/reminderRoutes");
+const quotationRoutes = require("./routes/quotationRoutes");
 const errorHandler = require("./middleware/errorHandler");
-const { startMaintenanceReminderJob } = require("./services/maintenanceReminderService");
+const {
+  startMaintenanceReminderJob,
+} = require("./services/maintenanceReminderService");
 
 const app = express();
 
@@ -40,8 +43,11 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/my", myRoutes);
 app.use("/api/helpers", helperRoutes);
 app.use("/api/reminders", reminderRoutes);
+app.use("/api/quotations", quotationRoutes);
 
-app.use((req, res) => res.status(404).json({ error: "Endpoint tidak ditemukan" }));
+app.use((req, res) =>
+  res.status(404).json({ error: "Endpoint tidak ditemukan" }),
+);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 4000;

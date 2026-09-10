@@ -416,25 +416,61 @@ function renderReceiptPdf(invoice, res) {
 
   y = Math.max(y, ry) + 20;
 
-  // Area tanda tangan
+  // ---- Area tanda tangan ----
+  // Dipatok mepet ke bagian paling bawah kertas (konsisten dengan PDF
+  // penawaran), bukan sekadar menempel di bawah rincian biaya - supaya
+  // tidak terlihat menggantung di tengah halaman kalau rincian order
+  // pendek. Kalau rincian ternyata kepanjangan sampai menabrak posisi itu,
+  // area ttd dipindah ke halaman baru dan tetap dipatok di bagian bawah
+  // halaman baru tersebut.
+  const signatureBlockHeight = 130;
+  const pageBottom = doc.page.height - doc.page.margins.bottom;
+  if (y + 20 > pageBottom - signatureBlockHeight) {
+    doc.addPage();
+    y = doc.page.height - doc.page.margins.bottom - signatureBlockHeight;
+  } else {
+    y = pageBottom - signatureBlockHeight;
+  }
+
   doc
     .fontSize(9)
     .font("Helvetica")
     .fillColor("#333")
-    .text("Unit Diterima Dalam Keadaan Baik", leftX, y);
-  y += 50;
+    .text("Unit Diterima Dalam Keadaan Baik", leftX, y, { width: pageWidth });
   const sigColW = pageWidth / 2 - 20;
-  doc.text(".............................", leftX, y, {
+  const leftColX = leftX;
+  const sigRightColX = leftX + sigColW + 40;
+  const lineY = y + 50;
+
+  // Stempel + ttd owner ditumpuk di atas garis kolom "Penerima Pembayaran"
+  // (pihak Project.id Service yang menerima pembayaran), aset & rasio yang
+  // sama dengan yang dipakai di PDF penawaran.
+  const stampPath = path.join(
+    __dirname,
+    "..",
+    "..",
+    "assets",
+    "stempel-owner.png",
+  );
+  const stampAspect = 1373 / 911; // rasio asli file stempel-owner.png
+  const stampH = 68;
+  const stampW = stampH * stampAspect;
+  const stampX = sigRightColX + (sigColW - stampW) / 2;
+  const stampY = lineY - stampH + 10;
+  doc.image(stampPath, stampX, stampY, { width: stampW, height: stampH });
+
+  doc.fontSize(9).font("Helvetica").fillColor("#333");
+  doc.text(".............................", leftColX, lineY, {
     width: sigColW,
     align: "center",
   });
-  doc.text(".............................", leftX + sigColW + 40, y, {
+  doc.text(".............................", sigRightColX, lineY, {
     width: sigColW,
     align: "center",
   });
-  y += 12;
-  doc.text("Pelanggan", leftX, y, { width: sigColW, align: "center" });
-  doc.text("Penerima Pembayaran", leftX + sigColW + 40, y, {
+  y = lineY + 12;
+  doc.text("Pelanggan", leftColX, y, { width: sigColW, align: "center" });
+  doc.text("Penerima Pembayaran", sigRightColX, y, {
     width: sigColW,
     align: "center",
   });

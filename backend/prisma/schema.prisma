@@ -56,6 +56,15 @@ enum InvoiceStatus {
   VOID
 }
 
+enum QuotationStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+  EXPIRED
+  CONVERTED
+}
+
 enum PaymentMethod {
   CASH
   TRANSFER
@@ -91,6 +100,7 @@ model Customer {
   updatedAt DateTime @updatedAt
 
   orders Order[]
+  quotations Quotation[]
 }
 
 model Technician {
@@ -130,6 +140,7 @@ model ServiceType {
   isActive    Boolean         @default(true)
 
   orders Order[]
+  quotations Quotation[]
 }
 
 model Order {
@@ -163,6 +174,7 @@ model Order {
   invoice Invoice?
   photos  OrderPhoto[]
   helpers OrderHelper[]
+  quotations Quotation[]
 }
 
 model OrderHelper {
@@ -214,6 +226,43 @@ model Invoice {
 
   payments Payment[]
 }
+
+model Quotation {
+  id               String          @id @default(uuid())
+  quotationNumber  String          @unique
+  customer         Customer        @relation(fields: [customerId], references: [id])
+  customerId       String
+  serviceType      ServiceType     @relation(fields: [serviceTypeId], references: [id])
+  serviceTypeId    String
+  jobType          JobType?
+  serviceItem      String?
+  brand            String?
+  address          String
+  notes            String?
+  subtotal         Decimal         @db.Decimal(12, 2)
+  discountPercent  Decimal  @default(0) @db.Decimal(5, 2)
+  discount         Decimal         @default(0) @db.Decimal(12, 2)
+  total            Decimal         @db.Decimal(12, 2)
+  validUntil       DateTime?
+  status           QuotationStatus @default(DRAFT)
+  convertedOrder   Order?          @relation(fields: [convertedOrderId], references: [id])
+  convertedOrderId String?         @unique
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  items QuotationItem[]
+}
+
+model QuotationItem {
+  id          String    @id @default(uuid())
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  quotationId String
+  name        String
+  qty         Int       @default(1)
+  unitPrice   Decimal   @db.Decimal(12, 2)
+}
+
+
 
 model Payment {
   id        String        @id @default(uuid())

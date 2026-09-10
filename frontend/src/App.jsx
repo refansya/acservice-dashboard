@@ -17,6 +17,7 @@ import MyOrderDetail from "./pages/technician/MyOrderDetail";
 import Helpers from "./pages/Helpers";
 import Settings from "./pages/Settings";
 import HelperLayout from "./layouts/HelperLayout";
+import Quotations from "./pages/Quotations";
 import MyAssignments from "./pages/helper/MyAssignments";
 
 export default function App() {
@@ -57,6 +58,7 @@ export default function App() {
             }
           >
             <Route index element={<Overview />} />
+            <Route path="quotations" element={<Quotations />} />
             <Route path="orders" element={<Orders />} />
             <Route path="kasir" element={<Kasir />} />
             <Route path="technicians" element={<Technicians />} />
