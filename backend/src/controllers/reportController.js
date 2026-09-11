@@ -1,10 +1,16 @@
 const prisma = require("../config/prisma");
 
-// Query params: from, to (ISO date strings)
+// Query params: from, to (ISO date strings), atau range=all untuk seluruh waktu
 function parseDateRange(req) {
-  const { from, to } = req.query;
+  const { from, to, range } = req.query;
+  if (range === "all") {
+    // undefined -> Prisma otomatis mengabaikan field ini, artinya tanpa batas tanggal
+    return undefined;
+  }
   return {
-    gte: from ? new Date(from) : new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    gte: from
+      ? new Date(from)
+      : new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     lte: to ? new Date(to) : new Date(),
   };
 }
@@ -17,7 +23,10 @@ async function revenueSummary(req, res) {
     select: { total: true, paidAt: true },
   });
 
-  const totalRevenue = invoices.reduce((sum, inv) => sum + Number(inv.total), 0);
+  const totalRevenue = invoices.reduce(
+    (sum, inv) => sum + Number(inv.total),
+    0,
+  );
 
   res.json({
     range,
@@ -60,7 +69,8 @@ async function technicianPerformance(req, res) {
     const key = order.technician.name;
     if (!stats[key]) stats[key] = { total: 0, done: 0 };
     stats[key].total += 1;
-    if (order.status === "DONE" || order.status === "INVOICED") stats[key].done += 1;
+    if (order.status === "DONE" || order.status === "INVOICED")
+      stats[key].done += 1;
   }
 
   res.json(stats);
@@ -105,11 +115,22 @@ async function preventiveReminders(req, res) {
   const until = new Date();
   until.setDate(until.getDate() + 7);
   const orders = await prisma.order.findMany({
-    where: { serviceType: { code: "MNT" }, reminderDate: { lte: until }, status: { in: ["DONE", "INVOICED"] } },
+    where: {
+      serviceType: { code: "MNT" },
+      reminderDate: { lte: until },
+      status: { in: ["DONE", "INVOICED"] },
+    },
     include: { customer: true, technician: true, serviceType: true },
     orderBy: { reminderDate: "asc" },
   });
   res.json(orders);
 }
 
-module.exports = { revenueSummary, topServices, technicianPerformance, categoryBreakdown, helperCommissions, preventiveReminders };
+module.exports = {
+  revenueSummary,
+  topServices,
+  technicianPerformance,
+  categoryBreakdown,
+  helperCommissions,
+  preventiveReminders,
+};
